@@ -1,0 +1,43 @@
+<?xml version="1.0" encoding="UTF-8"?>
+
+<?import java.lang.*?>
+<?import java.net.*?>
+<?import javafx.geometry.*?>
+<?import javafx.scene.control.*?>
+<?import javafx.scene.layout.*?>
+<?import javafx.scene.text.*?>
+<?import javafx.scene.image.*?>
+
+<Pane maxHeight="-Infinity" maxWidth="-Infinity" minHeight="-Infinity" minWidth="-Infinity" prefHeight="391.0" prefWidth="253.0" style="-fx-background-color: #2ABAEB;" xmlns="http://javafx.com/javafx/8" xmlns:fx="http://javafx.com/fxml/1" fx:controller="br.ufrn.cloudbox.client.ui.controller.LoginWindowController">
+   <children>
+      <ImageView id="boxImage" fitHeight="102.0" fitWidth="102.0" layoutX="76.0" layoutY="22.0">
+         <image>
+            <Image url="@logo.png" />
+         </image>
+      </ImageView>
+      <Label layoutX="40.0" layoutY="116.0" text="CloudBox" textFill="WHITE">
+         <font>
+            <Font name="System Bold" size="36.0" />
+         </font>
+      </Label>
+      
+      <TextField fx:id="emailField" layoutX="44.0" layoutY="189.0" promptText="Email" />
+      <PasswordField fx:id="passwordField" layoutX="44.0" layoutY="227.0" promptText="Senha" />
+
+      <Button defaultButton="true" layoutX="44.0" layoutY="264.0" mnemonicParsing="false" onAction="#handleLoginAction" prefHeight="33.0" prefWidth="167.0" text="Login">
+         <font>
+            <Font size="14.0" />
+         </font>
+      </Button>
+      
+      <Text fx:id="errorLogin" fill="#ff6a6a" layoutX="44.0" layoutY="314.0" strokeType="OUTSIDE" strokeWidth="0.0" textAlignment="CENTER" wrappingWidth="166.97265625">
+         <font>
+            <Font name="System Bold" size="13.0" />
+         </font></Text>
+      <Hyperlink layoutX="62.0" layoutY="332.0" onAction="#handleRegisterAction" text="Registre-se agora" textFill="WHITE" underline="true">
+         <font>
+            <Font size="14.0" />
+         </font>
+      </Hyperlink>
+   </children>
+</Pane>

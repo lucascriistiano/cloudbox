@@ -1,0 +1,5 @@
+package br.ufrn.cloudbox.model;
+
+public enum ErrorCode {
+	DUPLICATED_USER, USER_NOT_FOUND, FILE_NOT_FOUND, ERROR_WHILE_LISTING_FILES, ERROR_WHILE_DELETING_FILE
+}
