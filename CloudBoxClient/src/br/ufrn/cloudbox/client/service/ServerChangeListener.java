@@ -15,8 +15,7 @@ public class ServerChangeListener extends Thread {
 	private User user;
 	private String absolutePathRootDirectory;
 	private boolean listening;
-
-
+	
 	public ServerChangeListener(OperationExecutor operationExecutor, User user, String absolutePathRootDirectory) {
 		this.operationExecutor = operationExecutor;
 		this.user = user;

@@ -9,33 +9,31 @@ import java.io.OutputStream;
 import java.util.Date;
 
 public class FilesTransfer {
-
+	
 	public static void sendFile(OutputStream outputStream, String absoluteFilePath) throws IOException {
 		FileInputStream fileInputStream = new FileInputStream(absoluteFilePath);
-		byte[] buffer = new byte[4096];
-
-		while (fileInputStream.read(buffer) > 0) {
-			outputStream.write(buffer);
+		byte[] buffer = new byte[8192];
+		int count;
+		while ((count = fileInputStream.read(buffer)) > 0) {
+			outputStream.write(buffer, 0, count);
 		}
+		outputStream.flush();
+		
 		fileInputStream.close();
 	}
 	
-	//TODO Check if file exists and override it
 	public static File receiveFile(InputStream inputStream, String absoluteOutputFilePath, long fileSize, Date lastModified) throws IOException {
 		File outputFile = new File(absoluteOutputFilePath);
 		outputFile.getParentFile().mkdirs();
 		
 		FileOutputStream fileOutputStream = new FileOutputStream(outputFile);
-		byte[] buffer = new byte[4096];
+		byte[] buffer = new byte[8192];
 		
 		int filesize = (int) fileSize; // Send file size in separate msg
-		int read = 0;
-//		int totalRead = 0;
 		int remaining = filesize;
+		int read = 0;
 		while((read = inputStream.read(buffer, 0, Math.min(buffer.length, remaining))) > 0) {
-//			totalRead += read;
 			remaining -= read;
-//			System.out.println("read " + totalRead + " bytes.");
 			fileOutputStream.write(buffer, 0, read);
 		}
 		fileOutputStream.close();

@@ -19,7 +19,7 @@ public class FileInfoLoader {
 		
 		List<FileInfo> fileInfoList = new ArrayList<FileInfo>();
 		Files.walk(directoryPath).forEach(filePath -> {
-			if (Files.isRegularFile(filePath)) {
+			if (Files.isRegularFile(filePath) && Files.isReadable(filePath)) {
 				File file = new File(filePath.toUri());
 				Date lastModified = new Date(file.lastModified());
 				

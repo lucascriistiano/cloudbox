@@ -21,6 +21,7 @@ import br.ufrn.cloudbox.model.ResponseCode;
 import br.ufrn.cloudbox.model.User;
 import br.ufrn.cloudbox.service.FileInfoLoader;
 import br.ufrn.cloudbox.service.RequestFactory;
+import javafx.application.Platform;
 import javafx.scene.text.Text;
 
 public class OperationExecutor {
@@ -59,7 +60,28 @@ public class OperationExecutor {
 		}
 	}
 
-	private List<FileInfo> requestSyncFilesInfoList(User user, List<FileInfo> currentDirectoryFileInfoList)
+	public void syncFilesWithServer(User user, String absolutePathRootDirectory)
+			throws IOException, URISyntaxException, ConnectionException {
+		Platform.runLater(new Runnable() {
+			@Override
+			public void run() {
+				txtStatus.setText("Realizando sincronização com o servidor.");
+			}
+		});
+		List<FileInfo> currentDirectoryFileInfoList = FileInfoLoader.loadDirectoryFileInfo(absolutePathRootDirectory);
+		List<FileInfo> fileInfoListToModify = requestSyncFilesInfoList(user, currentDirectoryFileInfoList);
+
+		processModificationFromServer(user, absolutePathRootDirectory, fileInfoListToModify);
+		
+		Platform.runLater(new Runnable() {
+			@Override
+			public void run() {
+				txtStatus.setText("Diretório sincronizado com o servidor.");
+			}
+		});
+	}
+
+	private synchronized List<FileInfo> requestSyncFilesInfoList(User user, List<FileInfo> currentDirectoryFileInfoList)
 			throws ConnectionException {
 		Connection connection = ConnectionFactory.openConnection();
 		Request request = RequestFactory.createSyncFilesRequest(user, currentDirectoryFileInfoList);
@@ -69,47 +91,9 @@ public class OperationExecutor {
 		return response.getFileInfoList();
 	}
 
-	public File saveFileFromServer(User user, String localRelativePath, String outputFilePath, Date lastModified)
-			throws ConnectionException {
-		Connection connection = ConnectionFactory.openConnection();
-		Request request = RequestFactory.createGetFileRequest(user, localRelativePath);
-		Response response = connection.sendGetFileRequest(request, outputFilePath, lastModified);
-		connection.close();
-
-		return response.getFile();
-	}
-
-	public void sendFileToServer(User user, String absolutePathRootDirectory, String localRelativePath)
-			throws ConnectionException {
-		Connection connection = ConnectionFactory.openConnection();
-		Request request = RequestFactory.createSendFileRequest(user, localRelativePath);
-		Response response = connection.sendSendFileRequest(request, absolutePathRootDirectory);
-		connection.close();
-	}
-
-	public void deleteFileOnServer(User user, String localRelativePath) throws ConnectionException {
-		Connection connection = ConnectionFactory.openConnection();
-		Request request = RequestFactory.createDeleteFileRequest(user, localRelativePath);
-		Response response = connection.sendRequest(request);
-		connection.close();
-	}
-
-	public void deleteFileOrFolderOnDisk(String absoluteFilePath) throws IOException {
-		File fileToDelete = new File(absoluteFilePath);
-		if (fileToDelete.isDirectory()) {
-			FileUtils.deleteDirectory(fileToDelete);
-		} else {
-			fileToDelete.delete();
-		}
-	}
-
 	/**
-	 * Request files from server that has not locally and send files that server doesn't have
-	 * @param user
-	 * @param absolutePathRootDirectory
-	 * @param fileInfoListToModify
-	 * @throws ConnectionException
-	 * @throws IOException
+	 * Request files from server that has not locally and send files that server
+	 * doesn't have
 	 */
 	private void processModificationFromServer(User user, String absolutePathRootDirectory,
 			List<FileInfo> fileInfoListToModify) throws ConnectionException, IOException {
@@ -121,21 +105,15 @@ public class OperationExecutor {
 
 			switch (fileInfo.getFileOperation()) {
 			case DELETE_ON_CLIENT:
-				txtStatus.setText("Removendo o arquivo '" + relativePath + "'...");
-				deleteFileOrFolderOnDisk(absoluteFilePath);
-				txtStatus.setText("Arquivo '" + relativePath + "' removido!");
+				deleteFileOrFolderOnDisk(relativePath, absoluteFilePath);
 				break;
 
 			case GET_FROM_SERVER:
-				txtStatus.setText("Transferindo o arquivo '" + relativePath + "'...");
 				saveFileFromServer(user, relativePath, absoluteFilePath, lastModified);
-				txtStatus.setText("Arquivo '" + relativePath + "' recebido!");
 				break;
 
 			case SEND_TO_SERVER:
-				txtStatus.setText("Enviando o arquivo '" + relativePath + "' para o servidor...");
-				sendFileToServer(user, absolutePathRootDirectory, relativePath);
-				txtStatus.setText("Arquivo '" + relativePath + "' enviado!");
+				sendFileToServer(user, relativePath, absolutePathRootDirectory);
 				break;
 
 			default:
@@ -144,13 +122,81 @@ public class OperationExecutor {
 		}
 	}
 
-	public synchronized void syncFilesWithServer(User user, String absolutePathRootDirectory) throws IOException, URISyntaxException, ConnectionException {
-		txtStatus.setText("Realizando sincronização com o servidor.");
-		List<FileInfo> currentDirectoryFileInfoList = FileInfoLoader.loadDirectoryFileInfo(absolutePathRootDirectory);
-		List<FileInfo> fileInfoListToModify = requestSyncFilesInfoList(user, currentDirectoryFileInfoList);
+	public synchronized void deleteFileOrFolderOnDisk(String relativePath, String absoluteFilePath) throws IOException {
+		Platform.runLater(new Runnable() {
+			@Override
+			public void run() {
+				txtStatus.setText("Removendo o arquivo '" + relativePath + "'...");
+			}
+		});
+
+		File fileToDelete = new File(absoluteFilePath);
+		if (fileToDelete.isDirectory()) {
+			FileUtils.deleteDirectory(fileToDelete);
+		} else {
+			fileToDelete.delete();
+		}
+
+		Platform.runLater(new Runnable() {
+			@Override
+			public void run() {
+				txtStatus.setText("Arquivo '" + relativePath + "' removido!");
+			}
+		});
+	}
+
+	public synchronized File saveFileFromServer(User user, String relativePath, String outputFilePath,
+			Date lastModified) throws ConnectionException {
+		Platform.runLater(new Runnable() {
+			@Override
+			public void run() {
+				txtStatus.setText("Transferindo o arquivo '" + relativePath + "'...");
+			}
+		});
+
+		Connection connection = ConnectionFactory.openConnection();
+		Request request = RequestFactory.createGetFileRequest(user, relativePath);
+		Response response = connection.sendGetFileRequest(request, outputFilePath, lastModified);
+		connection.close();
+
+		Platform.runLater(new Runnable() {
+			@Override
+			public void run() {
+				txtStatus.setText("Arquivo '" + relativePath + "' recebido!");
+			}
+		});
+
+		return response.getFile();
+	}
+
+	public synchronized void sendFileToServer(User user, String relativePath, String absolutePathRootDirectory)
+			throws ConnectionException {
+		Platform.runLater(new Runnable() {
+			@Override
+			public void run() {
+				txtStatus.setText("Enviando o arquivo '" + relativePath + "' para o servidor...");
+			}
+		});
 		
-		processModificationFromServer(user, absolutePathRootDirectory, fileInfoListToModify);
-		txtStatus.setText("Diretório sincronizado com o servidor.");
+		Connection connection = ConnectionFactory.openConnection();
+		Request request = RequestFactory.createSendFileRequest(user, relativePath);
+		Response response = connection.sendSendFileRequest(request, absolutePathRootDirectory);
+		connection.close();
+
+		Platform.runLater(new Runnable() {
+			@Override
+			public void run() {
+				txtStatus.setText("Arquivo '" + relativePath + "' enviado!");
+			}
+		});
+
+	}
+
+	public synchronized void deleteFileOnServer(User user, String relativePath) throws ConnectionException {
+		Connection connection = ConnectionFactory.openConnection();
+		Request request = RequestFactory.createDeleteFileRequest(user, relativePath);
+		Response response = connection.sendRequest(request);
+		connection.close();
 	}
 
 }

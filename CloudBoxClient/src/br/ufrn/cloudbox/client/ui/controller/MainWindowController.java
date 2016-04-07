@@ -4,8 +4,8 @@ import java.io.File;
 import java.io.IOException;
 import java.net.URISyntaxException;
 
+import br.ufrn.cloudbox.client.service.ChangeListener;
 import br.ufrn.cloudbox.client.service.OperationExecutor;
-import br.ufrn.cloudbox.client.service.ServerChangeListener;
 import br.ufrn.cloudbox.exception.ConnectionException;
 import br.ufrn.cloudbox.model.User;
 import javafx.event.ActionEvent;
@@ -35,7 +35,7 @@ public class MainWindowController {
 	private User user;
 	private File selectedDirectory = null;
 
-	private ServerChangeListener serverChangeListener;
+	private ChangeListener changeListener;
 
 	public MainWindowController() {
 		this.directoryChooser = new DirectoryChooser();
@@ -83,14 +83,10 @@ public class MainWindowController {
 	private void syncAndMonitorNewRootFolder() throws IOException, URISyntaxException, ConnectionException {
 		String absolutePathRootDirectory = this.selectedDirectory.getAbsolutePath();
 
-		// Make an initial sync with server
-		txtStatus.setText("Realizando sincronização inicial...");
-		operationExecutor.syncFilesWithServer(this.user, absolutePathRootDirectory);
-
 		// Start client change listener
 		txtStatus.setText("Iniciando monitoramento...");
-		serverChangeListener = new ServerChangeListener(this.operationExecutor, user, absolutePathRootDirectory);
-		serverChangeListener.start();
+		changeListener = new ChangeListener(operationExecutor, user, absolutePathRootDirectory);
+		changeListener.start();
 		txtStatus.setText("Monitorando diretório...");
 	}
 
@@ -100,13 +96,11 @@ public class MainWindowController {
 		openLoginWindow();
 	}
 
-	private void stopPreviousMonitorActive() throws InterruptedException {
-		if (this.serverChangeListener != null) {
+	private void stopPreviousMonitorActive() {
+		if (this.changeListener != null) {
 			txtStatus.setText("Parando monitoramento anterior...");
-			this.serverChangeListener.stopListening();
-			this.serverChangeListener.join(2000);
-			this.serverChangeListener.interrupt();
-			this.serverChangeListener = null;
+			this.changeListener.stopListening();
+			this.changeListener = null;
 		}
 	}
 

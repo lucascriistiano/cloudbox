@@ -9,6 +9,8 @@ import java.util.Map;
 import java.util.Map.Entry;
 
 import org.apache.commons.io.FileUtils;
+import org.apache.logging.log4j.LogManager;
+import org.apache.logging.log4j.Logger;
 
 import br.ufrn.cloudbox.exception.DuplicatedUserException;
 import br.ufrn.cloudbox.exception.FileListingException;
@@ -23,6 +25,8 @@ import br.ufrn.cloudbox.server.dao.IUserDao;
 import br.ufrn.cloudbox.server.model.Operation;
 
 public class OperationExecutor {
+	
+	private static final Logger logger = LogManager.getLogger(OperationExecutor.class);
 	
 	private static final String FOLDER_NAME = "CloudBoxServerFiles";
 	public static final String BASEPATH = System.getProperty("user.home") + File.separatorChar + FOLDER_NAME;
@@ -135,7 +139,6 @@ public class OperationExecutor {
 				// Server has no operation to this file (it's a new file)
 				FileInfo newFileInfo = new FileInfo(relativeFilePath, clientLastModified, FileOperation.SEND_TO_SERVER);
 				responseFileInfoList.add(newFileInfo);
-				System.out.println("Adicionou no 1");
 			} else {
 				Operation lastOperation = serverFilesOperations.get(relativeFilePath);
 				Date lastOperationDatetime = lastOperation.getDatetime();
@@ -155,13 +158,14 @@ public class OperationExecutor {
 
 	public void deleteFileOrFolderOnDisk(User user, String relativePath) throws IOException {
 		String absoluteFilePath = getAbsoluteFilePath(user, relativePath);
-		System.out.println("Deleting: " + absoluteFilePath);
 		
 		File fileToDelete = new File(absoluteFilePath);
 		if(fileToDelete.isDirectory()) {
 			FileUtils.deleteDirectory(fileToDelete);
+			logger.info("Directory '" + absoluteFilePath + "' deleted.");
 		} else {
 			fileToDelete.delete();
+			logger.info("File '" + absoluteFilePath + "' deleted.");
 		}
 	}
 	

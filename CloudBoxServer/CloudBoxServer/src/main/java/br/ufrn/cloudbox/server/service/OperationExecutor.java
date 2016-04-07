@@ -135,7 +135,6 @@ public class OperationExecutor {
 				// Server has no operation to this file (it's a new file)
 				FileInfo newFileInfo = new FileInfo(relativeFilePath, clientLastModified, FileOperation.SEND_TO_SERVER);
 				responseFileInfoList.add(newFileInfo);
-				System.out.println("Adicionou no 1");
 			} else {
 				Operation lastOperation = serverFilesOperations.get(relativeFilePath);
 				Date lastOperationDatetime = lastOperation.getDatetime();

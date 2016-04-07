@@ -13,6 +13,7 @@ import br.ufrn.cloudbox.model.Request;
 import br.ufrn.cloudbox.model.Response;
 import br.ufrn.cloudbox.model.ResponseCode;
 import br.ufrn.cloudbox.service.FileInfoLoader;
+import br.ufrn.cloudbox.service.ResponseFactory;
 
 public class Connection {
 
@@ -70,6 +71,11 @@ public class Connection {
 			if (response.getResponseCode() == ResponseCode.OK) {
 				File outputFile = FilesTransfer.receiveFile(objectInputStream, outputFilePath, response.getFileSize(), lastModified);
 				response.setFile(outputFile);
+				
+				//TODO Finish write transfer confirmation
+				Response responseFileReceived = ResponseFactory.createResponseOK();
+				objectOutputStream.writeObject(responseFileReceived);
+				System.out.println("Transfer finished");
 			}
 		} catch (IOException e) {
 			e.printStackTrace();
@@ -94,6 +100,12 @@ public class Connection {
 			response = (Response) objectInputStream.readObject();
 			if (response.getResponseCode() == ResponseCode.OK) {
 				FilesTransfer.sendFile(objectOutputStream, absoluteFilePath);
+				
+				//TODO Finish write transfer confirmation
+				Response responseFileReceived = (Response) objectInputStream.readObject();
+				if(responseFileReceived.getResponseCode().equals(ResponseCode.OK)) {
+					System.out.println("Transfer finished");
+				}
 			}
 		} catch (IOException e) {
 			e.printStackTrace();

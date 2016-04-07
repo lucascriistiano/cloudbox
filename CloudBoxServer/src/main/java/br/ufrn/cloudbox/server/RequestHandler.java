@@ -10,6 +10,9 @@ import java.util.List;
 import java.util.Map;
 import java.util.concurrent.ConcurrentHashMap;
 
+import org.apache.logging.log4j.LogManager;
+import org.apache.logging.log4j.Logger;
+
 import br.ufrn.cloudbox.exception.DuplicatedUserException;
 import br.ufrn.cloudbox.exception.FileListingException;
 import br.ufrn.cloudbox.exception.UserNotFoundException;
@@ -18,6 +21,7 @@ import br.ufrn.cloudbox.model.FileInfo;
 import br.ufrn.cloudbox.model.FilesTransfer;
 import br.ufrn.cloudbox.model.Request;
 import br.ufrn.cloudbox.model.Response;
+import br.ufrn.cloudbox.model.ResponseCode;
 import br.ufrn.cloudbox.model.User;
 import br.ufrn.cloudbox.server.dao.HibernateOperationDao;
 import br.ufrn.cloudbox.server.dao.IOperationDao;
@@ -27,6 +31,8 @@ import br.ufrn.cloudbox.service.ResponseFactory;
 
 public class RequestHandler extends Thread {
 
+	private static final Logger logger = LogManager.getLogger(RequestHandler.class);
+	
 	private Socket clientSocket;
 	private OperationExecutor operationExecutor;
 
@@ -87,34 +93,35 @@ public class RequestHandler extends Thread {
 			objectOutputStream.close();
 			objectInputStream.close();
 			this.clientSocket.close();
+			
+			logger.info("Request finished");
 		} catch (ClassNotFoundException e) {
-			System.out.println("Error while sending response. Error: " + e.getMessage());
+			logger.error("Error while sending response. Error: " + e.getMessage());
 			e.printStackTrace();
 		} catch (IOException e) {
-			System.out.println("Error while handling request. Error: " + e.getMessage());
+			logger.error("Error while handling request. Error: " + e.getMessage());
 			e.printStackTrace();
 		}
-		System.out.println("Requisição finalizada");
 	}
 
 	private void handleRegisterRequest(Request request) throws IOException {
-		System.out.println("Register operation requested");
+		logger.info("Register operation requested");
 		User requestUser = request.getUser();
 
 		Response response;
 		try {
-			System.out.println(requestUser);
 			operationExecutor.register(requestUser);
 			response = ResponseFactory.createResponseOK();
+			logger.info("Register operation done for email '" + requestUser.getEmail() + "'");
 		} catch (DuplicatedUserException e) {
-			System.out.println("Aborting operation - Duplicated user");
+			logger.info("Aborting operation - Duplicated user");
 			response = ResponseFactory.createResponseERROR(ErrorCode.DUPLICATED_USER);
 		}
 		objectOutputStream.writeObject(response);
 	}
 
 	private void handleLoginRequest(Request request) throws IOException {
-		System.out.println("Login operation requested");
+		logger.info("Login operation requested");
 		User requestUser = request.getUser();
 
 		Response response;
@@ -127,7 +134,7 @@ public class RequestHandler extends Thread {
 			response = ResponseFactory.createResponseOK();
 			response.setUser(user);
 		} catch (UserNotFoundException e) {
-			System.out.println("Aborting operation - Invalid email/password");
+			logger.error("Aborting operation - Invalid email/password");
 			response = ResponseFactory.createResponseERROR(ErrorCode.USER_NOT_FOUND);
 		}
 		objectOutputStream.writeObject(response);
@@ -135,7 +142,7 @@ public class RequestHandler extends Thread {
 
 	// TODO Use logout on client
 	private void handleLogoutRequest(Request request) throws IOException {
-		System.out.println("Logout operation requested");
+		logger.info("Logout operation requested");
 
 		User requestUser = request.getUser();
 		synchronized (userLockList.get(requestUser.getId())) {
@@ -146,9 +153,8 @@ public class RequestHandler extends Thread {
 		}
 	}
 
-	// TODO Check
 	private void handleSyncFilesRequest(Request request) throws IOException {
-		System.out.println("Sync files operation requested");
+		logger.info("Sync files operation requested");
 
 		User requestUser = request.getUser();
 		synchronized (userLockList.get(requestUser.getId())) {
@@ -160,15 +166,15 @@ public class RequestHandler extends Thread {
 				response = ResponseFactory.createResponseOK();
 				response.setFileInfoList(responseFileInfo);
 			} catch (FileListingException e) {
-				System.out.println("Aborting operation - Error while listing user files sync");
+				logger.error("Aborting operation - Error while listing user files sync");
 				response = ResponseFactory.createResponseERROR(ErrorCode.ERROR_WHILE_LISTING_FILES);
 			}
 			objectOutputStream.writeObject(response);
 		}
 	}
 
-	private void handleGetFileRequest(Request request) throws IOException {
-		System.out.println("Get file operation requested");
+	private void handleGetFileRequest(Request request) throws IOException, ClassNotFoundException {
+		logger.info("Get file operation requested");
 
 		User requestUser = request.getUser();
 		synchronized (userLockList.get(requestUser.getId())) {
@@ -183,9 +189,15 @@ public class RequestHandler extends Thread {
 				objectOutputStream.writeObject(response);
 
 				FilesTransfer.sendFile(this.objectOutputStream, absoluteFilePath);
-				System.out.println("File '" + relativePath + "' sent!");
+				logger.info("File '" + relativePath + "' sent!");
+				
+				//TODO Finish write transfer confirmation
+				Response responseFileReceived = (Response) objectInputStream.readObject();
+				if(responseFileReceived.getResponseCode().equals(ResponseCode.OK)) {
+					logger.info("Transfer finished");
+				}
 			} else {
-				System.out.println("Aborting operation - Requested file doesn't exist");
+				logger.error("Aborting operation - Requested file '" + relativePath + "' doesn't exist");
 				response = ResponseFactory.createResponseERROR(ErrorCode.FILE_NOT_FOUND);
 				objectOutputStream.writeObject(response);
 			}
@@ -193,7 +205,7 @@ public class RequestHandler extends Thread {
 	}
 
 	private void handleSendFileRequest(Request request) throws IOException {
-		System.out.println("Send file operation requested");
+		logger.info("Send file operation requested");
 
 		User requestUser = request.getUser();
 		synchronized (userLockList.get(requestUser.getId())) {
@@ -203,16 +215,21 @@ public class RequestHandler extends Thread {
 			String relativePath = request.getRelativePath();
 			Date lastModified = request.getLastModified();
 
+			logger.info("Receiving file '" + relativePath + "'");
 			String absoluteOutputFilePath = OperationExecutor.getAbsoluteFilePath(requestUser, relativePath);
-			System.out.println("Will receive: '" + absoluteOutputFilePath + "'");
 			FilesTransfer.receiveFile(objectInputStream, absoluteOutputFilePath, request.getFileSize(), lastModified);
+			
+			//TODO Finish write transfer confirmation
+			Response responseFileReceived = ResponseFactory.createResponseOK();
+			objectOutputStream.writeObject(responseFileReceived);
+			logger.info("Transfer finished");
 
 			this.operationDao.registerOperation(new Operation(relativePath, lastModified, Operation.UPDATE, requestUser));
 		}
 	}
 
 	private void handleDeleteFileRequest(Request request) throws IOException {
-		System.out.println("Delete file operation requested");
+		logger.info("Delete file operation requested");
 
 		User requestUser = request.getUser();
 		synchronized (userLockList.get(requestUser.getId())) {
@@ -227,7 +244,7 @@ public class RequestHandler extends Thread {
 	}
 
 	private void handleUnknownOperationRequest() throws IOException {
-		System.out.println("Unknown requested operation");
+		logger.info("Unknown requested operation");
 		Response response = ResponseFactory.createResponseUNKNOWN();
 		objectOutputStream.writeObject(response);
 	}
