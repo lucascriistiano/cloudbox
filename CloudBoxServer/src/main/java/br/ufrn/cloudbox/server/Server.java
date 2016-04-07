@@ -31,7 +31,7 @@ public class Server extends Thread {
 
 	private void configureServer() {
 		// Check and create base directory if it doesn't exist
-		File filesDir = new File(OperationExecutor.BASEPATH);
+		File filesDir = new File(OperationExecutor.SERVER_BASEPATH);
 		if (!filesDir.exists()) {
 			logger.info("Creating user files folder ...");
 			filesDir.mkdirs();

@@ -31,7 +31,7 @@ public class LoginWindowController {
 
 	public LoginWindowController() {
 		//TODO Change and remove null
-		this.operationExecutor = new OperationExecutor(null);
+		this.operationExecutor = new OperationExecutor(null, null);
 	}
 
 	@FXML

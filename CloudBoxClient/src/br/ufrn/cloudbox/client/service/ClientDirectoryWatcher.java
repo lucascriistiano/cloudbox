@@ -1,38 +1,34 @@
 package br.ufrn.cloudbox.client.service;
  
 import java.io.IOException;
- 
+import java.util.List;
+
 import br.ufrn.cloudbox.exception.ConnectionException;
-import br.ufrn.cloudbox.model.User;
 import br.ufrn.cloudbox.service.DirectoryWatcher;
  
 public class ClientDirectoryWatcher extends DirectoryWatcher {
  
-    private OperationExecutor operationExecutor;
-    private User user;
+	private List<String> removeEventsFileList;
  
-    public ClientDirectoryWatcher(OperationExecutor operationExecutor, User user, String absoluteRootDirectory) throws IOException {
+    public ClientDirectoryWatcher(String absoluteRootDirectory, List<String> removeEventsFileList) throws IOException {
         super(absoluteRootDirectory);
-        this.operationExecutor = operationExecutor;
-        this.user = user;
+		this.removeEventsFileList = removeEventsFileList;
     }
  
     @Override
     public void processCreateEvent(String relativePath) throws ConnectionException {
     	System.out.println("CREATE: " + relativePath);
-//        this.operationExecutor.sendFileToServer(user, relativePath, getAbsoluteRootDirectory());
     }
  
     @Override
     public void processDeleteEvent(String relativePath) throws ConnectionException {
         System.out.println("DELETE: " + relativePath);
-    	this.operationExecutor.deleteFileOnServer(user, relativePath);
+        removeEventsFileList.add(relativePath);
     }
  
     @Override
     public void processModifyEvent(String relativePath) throws ConnectionException {
     	System.out.println("MODIFY: " + relativePath);
-//        this.operationExecutor.sendFileToServer(user, relativePath, getAbsoluteRootDirectory());
     }
  
 }

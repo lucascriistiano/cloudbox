@@ -27,12 +27,14 @@ import javafx.scene.text.Text;
 public class OperationExecutor {
 
 	private Text txtStatus;
+	private List<String> ignoredfiles;
 
-	public OperationExecutor(Text txtStatus) {
+	public OperationExecutor(Text txtStatus, List<String> ignoredfiles) {
 		this.txtStatus = txtStatus;
+		this.ignoredfiles = ignoredfiles;
 	}
 
-	public User login(String email, String password) throws ConnectionException, UserNotFoundException {
+	public synchronized User login(String email, String password) throws ConnectionException, UserNotFoundException {
 		Connection connection = ConnectionFactory.openConnection();
 		Request request = RequestFactory.createLoginRequest(new User(email, password));
 		Response response = connection.sendRequest(request);
@@ -46,8 +48,15 @@ public class OperationExecutor {
 
 		return response.getUser();
 	}
+	
+	public synchronized void logout(User user) throws ConnectionException {
+		Connection connection = ConnectionFactory.openConnection();
+		Request request = RequestFactory.createLogoutRequest(user);
+		Response response = connection.sendRequest(request);
+		connection.close();
+	}
 
-	public void register(User user) throws ConnectionException, DuplicatedUserException {
+	public synchronized void register(User user) throws ConnectionException, DuplicatedUserException {
 		Connection connection = ConnectionFactory.openConnection();
 		Request request = RequestFactory.createRegisterRequest(user);
 		Response response = connection.sendRequest(request);
@@ -60,7 +69,7 @@ public class OperationExecutor {
 		}
 	}
 
-	public void syncFilesWithServer(User user, String absolutePathRootDirectory)
+	public synchronized void syncFilesWithServer(User user, String absolutePathRootDirectory)
 			throws IOException, URISyntaxException, ConnectionException {
 		Platform.runLater(new Runnable() {
 			@Override
@@ -68,6 +77,7 @@ public class OperationExecutor {
 				txtStatus.setText("Realizando sincronização com o servidor.");
 			}
 		});
+		
 		List<FileInfo> currentDirectoryFileInfoList = FileInfoLoader.loadDirectoryFileInfo(absolutePathRootDirectory);
 		List<FileInfo> fileInfoListToModify = requestSyncFilesInfoList(user, currentDirectoryFileInfoList);
 
@@ -95,29 +105,33 @@ public class OperationExecutor {
 	 * Request files from server that has not locally and send files that server
 	 * doesn't have
 	 */
-	private void processModificationFromServer(User user, String absolutePathRootDirectory,
-			List<FileInfo> fileInfoListToModify) throws ConnectionException, IOException {
+	private synchronized void processModificationFromServer(User user, String absolutePathRootDirectory, List<FileInfo> fileInfoListToModify) throws ConnectionException, IOException {
 
 		for (FileInfo fileInfo : fileInfoListToModify) {
 			String relativePath = fileInfo.getRelativePath();
-			String absoluteFilePath = FileInfoLoader.buildAbsoluteFilePath(absolutePathRootDirectory, relativePath);
-			Date lastModified = fileInfo.getLastModified();
-
-			switch (fileInfo.getFileOperation()) {
-			case DELETE_ON_CLIENT:
-				deleteFileOrFolderOnDisk(relativePath, absoluteFilePath);
-				break;
-
-			case GET_FROM_SERVER:
-				saveFileFromServer(user, relativePath, absoluteFilePath, lastModified);
-				break;
-
-			case SEND_TO_SERVER:
-				sendFileToServer(user, relativePath, absolutePathRootDirectory);
-				break;
-
-			default:
-				break;
+			
+			if(!ignoredfiles.contains(relativePath)) {
+				String absoluteFilePath = FileInfoLoader.buildAbsoluteFilePath(absolutePathRootDirectory, relativePath);
+				Date lastModified = fileInfo.getLastModified();
+	
+				switch (fileInfo.getFileOperation()) {
+				case DELETE_ON_CLIENT:
+					deleteFileOrFolderOnDisk(relativePath, absoluteFilePath);
+					break;
+	
+				case GET_FROM_SERVER:
+					saveFileFromServer(user, relativePath, absoluteFilePath, lastModified);
+					break;
+	
+				case SEND_TO_SERVER:
+					sendFileToServer(user, relativePath, absolutePathRootDirectory);
+					break;
+	
+				default:
+					break;
+				}
+			} else {
+				System.out.println("Ignoring operation for file '" + relativePath + "'");
 			}
 		}
 	}
@@ -126,7 +140,7 @@ public class OperationExecutor {
 		Platform.runLater(new Runnable() {
 			@Override
 			public void run() {
-				txtStatus.setText("Removendo o arquivo '" + relativePath + "'...");
+				txtStatus.setText("Removendo arquivo '" + relativePath + "'...");
 			}
 		});
 
@@ -150,7 +164,7 @@ public class OperationExecutor {
 		Platform.runLater(new Runnable() {
 			@Override
 			public void run() {
-				txtStatus.setText("Transferindo o arquivo '" + relativePath + "'...");
+				txtStatus.setText("Recebendo arquivo '" + relativePath + "'...");
 			}
 		});
 
@@ -174,7 +188,7 @@ public class OperationExecutor {
 		Platform.runLater(new Runnable() {
 			@Override
 			public void run() {
-				txtStatus.setText("Enviando o arquivo '" + relativePath + "' para o servidor...");
+				txtStatus.setText("Enviando arquivo '" + relativePath + "'...");
 			}
 		});
 		
@@ -193,10 +207,24 @@ public class OperationExecutor {
 	}
 
 	public synchronized void deleteFileOnServer(User user, String relativePath) throws ConnectionException {
+		Platform.runLater(new Runnable() {
+			@Override
+			public void run() {
+				txtStatus.setText("Removendo arquivo '" + relativePath + "' no servidor...");
+			}
+		});
+		
 		Connection connection = ConnectionFactory.openConnection();
 		Request request = RequestFactory.createDeleteFileRequest(user, relativePath);
 		Response response = connection.sendRequest(request);
 		connection.close();
+		
+		Platform.runLater(new Runnable() {
+			@Override
+			public void run() {
+				txtStatus.setText("Arquivo '" + relativePath + "' removido do servidor!");
+			}
+		});
 	}
 
 }

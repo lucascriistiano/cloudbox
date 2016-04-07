@@ -4,17 +4,12 @@ import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
 
-import org.hibernate.Criteria;
 import org.hibernate.HibernateException;
 import org.hibernate.Query;
 import org.hibernate.Session;
 import org.hibernate.SessionFactory;
 import org.hibernate.Transaction;
 import org.hibernate.cfg.Configuration;
-import org.hibernate.criterion.DetachedCriteria;
-import org.hibernate.criterion.Projections;
-import org.hibernate.criterion.Property;
-import org.hibernate.criterion.Restrictions;
 
 import br.ufrn.cloudbox.model.User;
 import br.ufrn.cloudbox.server.model.Operation;
@@ -54,24 +49,24 @@ public class HibernateOperationDao implements IOperationDao {
 		return operationId;
 	}
 
-	public Operation getLastOperation(User user, String relativeFilePath) {
-		Session session = sessionFactory.openSession();
-		DetachedCriteria maxDatetimeQuery = DetachedCriteria.forClass(Operation.class);
-		maxDatetimeQuery.add(Restrictions.eq("user.id", user.getId()));
-		maxDatetimeQuery.add(Restrictions.eq("relativeFilePath", relativeFilePath));
-		maxDatetimeQuery.setProjection(Projections.max("datetime"));
-
-		Criteria criteria = session.createCriteria(Operation.class);
-		criteria.add(Restrictions.eq("user.id", user.getId()));
-		criteria.add(Restrictions.eq("relativeFilePath", relativeFilePath));
-		criteria.add(Property.forName("datetime").eq(maxDatetimeQuery));
-
-		Operation foundOperation = (Operation) criteria.uniqueResult();
-
-		session.close();
-
-		return foundOperation;
-	}
+//	public Operation getLastOperation(User user, String relativeFilePath) {
+//		Session session = sessionFactory.openSession();
+//		DetachedCriteria maxDatetimeQuery = DetachedCriteria.forClass(Operation.class);
+//		maxDatetimeQuery.add(Restrictions.eq("user.id", user.getId()));
+//		maxDatetimeQuery.add(Restrictions.eq("relativeFilePath", relativeFilePath));
+//		maxDatetimeQuery.setProjection(Projections.max("datetime"));
+//
+//		Criteria criteria = session.createCriteria(Operation.class);
+//		criteria.add(Restrictions.eq("user.id", user.getId()));
+//		criteria.add(Restrictions.eq("relativeFilePath", relativeFilePath));
+//		criteria.add(Property.forName("datetime").eq(maxDatetimeQuery));
+//
+//		Operation foundOperation = (Operation) criteria.uniqueResult();
+//
+//		session.close();
+//
+//		return foundOperation;
+//	}
 
 	public Map<String, Operation> getFilesOperations(User user) {
 		Session session = sessionFactory.openSession();

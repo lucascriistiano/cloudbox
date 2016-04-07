@@ -8,18 +8,13 @@
 <?import javafx.scene.text.*?>
 <?import javafx.scene.image.*?>
 
-<Pane maxHeight="-Infinity" maxWidth="-Infinity" minHeight="-Infinity" minWidth="-Infinity" prefHeight="216.0" prefWidth="515.0" style="-fx-background-color: #2ABAEB;" xmlns="http://javafx.com/javafx/8" xmlns:fx="http://javafx.com/fxml/1" fx:controller="br.ufrn.cloudbox.client.ui.controller.MainWindowController">
+<Pane maxHeight="-Infinity" maxWidth="-Infinity" minHeight="-Infinity" minWidth="-Infinity" prefHeight="348.0" prefWidth="515.0" style="-fx-background-color: #2ABAEB;" xmlns="http://javafx.com/javafx/8" xmlns:fx="http://javafx.com/fxml/1" fx:controller="br.ufrn.cloudbox.client.ui.controller.MainWindowController">
    <children>
       <Label layoutX="26.0" layoutY="30.0" text="Diretório" textFill="WHITE" />
       <TextField fx:id="folderField" editable="false" layoutX="25.0" layoutY="51.0" prefHeight="27.0" prefWidth="394.0" promptText="Nenhum diretório selecionado" />
-      <Button layoutX="26.0" layoutY="151.0" mnemonicParsing="false" onAction="#handleLogoutAction" prefHeight="28.0" prefWidth="71.0" text="Logout">
-         <font>
-            <Font size="14.0" />
-         </font>
-      </Button>
       
-      <Label layoutX="25.0" layoutY="97.0" text="Estado" textFill="WHITE" />
-      <Text fx:id="txtStatus" fill="WHITE" layoutX="25.0" layoutY="128.0" strokeType="OUTSIDE" strokeWidth="0.0" text="Aguardando a seleção do diretório." />
+      <Label layoutX="25.0" layoutY="239.0" text="Estado" textFill="WHITE" />
+      <Text fx:id="txtStatus" fill="WHITE" layoutX="25.0" layoutY="270.0" strokeType="OUTSIDE" strokeWidth="0.0" text="Aguardando a seleção do diretório." />
 
       <Button defaultButton="true" layoutX="419.0" layoutY="50.0" mnemonicParsing="false" onAction="#handleChooseFolderAction" prefHeight="28.0" prefWidth="79.0" text="Escolher">
          <font>
@@ -27,16 +22,33 @@
          </font>
       </Button>
       <Text fx:id="txtLoggedUser" fill="WHITE" layoutX="26.0" layoutY="198.0" strokeType="OUTSIDE" strokeWidth="0.0" wrappingWidth="240.0" />
+      <Button layoutX="26.0" layoutY="287.0" mnemonicParsing="false" onAction="#handleLogoutAction" prefHeight="28.0" prefWidth="71.0" text="Logout">
+         <font>
+            <Font size="14.0" />
+         </font>
+      </Button>
       
-      <Label layoutX="430.0" layoutY="180.0" text="CloudBox" textFill="WHITE">
+      <Label layoutX="430.0" layoutY="313.0" text="CloudBox" textFill="WHITE">
          <font>
             <Font name="System Bold" size="13.0" />
          </font>
       </Label>
-      <ImageView id="boxImage" fitHeight="33.0" fitWidth="37.0" layoutX="442.0" layoutY="147.0">
+      <ImageView id="boxImage" fitHeight="33.0" fitWidth="37.0" layoutX="442.0" layoutY="280.0">
          <image>
             <Image url="@logo.png" />
          </image>
       </ImageView>
+      <ListView fx:id="fileIgnoreListView" layoutX="26.0" layoutY="111.0" prefHeight="119.0" prefWidth="421.0" />
+      <Button defaultButton="true" layoutX="451.0" layoutY="143.0" mnemonicParsing="false" onAction="#handleRemoveFileIgnoreAction" prefHeight="28.0" prefWidth="42.0" text="-">
+         <font>
+            <Font size="14.0" />
+         </font>
+      </Button>
+      <Button defaultButton="true" layoutX="451.0" layoutY="111.0" mnemonicParsing="false" onAction="#handleAddFileIgnoreAction" prefHeight="28.0" prefWidth="42.0" text="+">
+         <font>
+            <Font size="14.0" />
+         </font>
+      </Button>
+      <Label layoutX="26.0" layoutY="88.0" text="Arquivos não monitorados" textFill="WHITE" />
    </children>
 </Pane>

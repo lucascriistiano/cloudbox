@@ -29,7 +29,7 @@ public class RegisterWindowController {
 	
 	public RegisterWindowController() {
 		//TODO Change and remove null
-		this.operationExecutor = new OperationExecutor(null);
+		this.operationExecutor = new OperationExecutor(null, null);
 	}
 	
 	@FXML

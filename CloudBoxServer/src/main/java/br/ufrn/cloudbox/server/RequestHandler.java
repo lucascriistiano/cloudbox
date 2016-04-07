@@ -140,7 +140,6 @@ public class RequestHandler extends Thread {
 		objectOutputStream.writeObject(response);
 	}
 
-	// TODO Use logout on client
 	private void handleLogoutRequest(Request request) throws IOException {
 		logger.info("Logout operation requested");
 
@@ -148,7 +147,6 @@ public class RequestHandler extends Thread {
 		synchronized (userLockList.get(requestUser.getId())) {
 			userLockList.remove(requestUser.getId());
 			Response response = ResponseFactory.createResponseOK();
-			response.setUser(requestUser);
 			objectOutputStream.writeObject(response);
 		}
 	}

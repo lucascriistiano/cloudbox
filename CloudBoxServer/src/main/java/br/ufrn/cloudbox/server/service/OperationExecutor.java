@@ -25,34 +25,34 @@ import br.ufrn.cloudbox.server.dao.IUserDao;
 import br.ufrn.cloudbox.server.model.Operation;
 
 public class OperationExecutor {
-	
+
 	private static final Logger logger = LogManager.getLogger(OperationExecutor.class);
-	
+
 	private static final String FOLDER_NAME = "CloudBoxServerFiles";
-	public static final String BASEPATH = System.getProperty("user.home") + File.separatorChar + FOLDER_NAME;
+	public static final String SERVER_BASEPATH = System.getProperty("user.home") + File.separatorChar + FOLDER_NAME;
 	private static OperationExecutor instance;
-	
+
 	private IUserDao userDao;
 	private IOperationDao operationDao;
 
 	public static OperationExecutor getInstance() {
-		if(instance == null) {
+		if (instance == null) {
 			instance = new OperationExecutor();
 		}
 		return instance;
 	}
-	
+
 	private OperationExecutor() {
 		this.userDao = HibernateUserDao.getInstance();
 		this.operationDao = HibernateOperationDao.getInstance();
 	}
-	
+
 	public User login(User user) throws UserNotFoundException {
 		String email = user.getEmail();
 		String password = user.getPassword();
-		
+
 		User foundUser = this.userDao.findByEmailAndPassword(email, password);
-		if(foundUser == null) {
+		if (foundUser == null) {
 			throw new UserNotFoundException();
 		}
 		return foundUser;
@@ -61,35 +61,40 @@ public class OperationExecutor {
 	public void register(User user) throws DuplicatedUserException {
 		String email = user.getEmail();
 		User userWithSameEmail = this.userDao.findByEmail(email);
-		
-		if(userWithSameEmail != null) {
+
+		if (userWithSameEmail != null) {
 			throw new DuplicatedUserException();
 		}
-		
+
 		Long userId = this.userDao.register(user);
-		new File(BASEPATH + File.separatorChar + userId).mkdir(); //Creates the directory to the user
+
+		// Creates the directory to the user
+		new File(SERVER_BASEPATH + File.separatorChar + userId).mkdir();
 	}
-	
+
 	public List<FileInfo> syncFilesInfoList(User user, List<FileInfo> clientFileInfoList) throws FileListingException {
 		Map<String, Operation> serverFilesOperations = this.operationDao.getFilesOperations(user);
-		
+
 		List<FileInfo> responseFileInfoList = new ArrayList<FileInfo>();
-		
+
 		List<FileInfo> changesForClientList = checkChangesForClient(clientFileInfoList, serverFilesOperations);
 		responseFileInfoList.addAll(changesForClientList);
 
 		List<FileInfo> changesForServerList = checkChangesForServer(clientFileInfoList, serverFilesOperations);
 		responseFileInfoList.addAll(changesForServerList);
-		
+
 		return responseFileInfoList;
 	}
 
 	/**
-	 * Check files that client doesn't have, have a outdated version or a deleted file.
+	 * Check files that client doesn't have, have a outdated version or a
+	 * deleted file.
+	 * 
 	 * @param clientFileInfoList
 	 * @return
 	 */
-	private List<FileInfo> checkChangesForClient(List<FileInfo> clientFileInfoList,  Map<String, Operation> serverFilesOperations) {
+	private List<FileInfo> checkChangesForClient(List<FileInfo> clientFileInfoList,
+			Map<String, Operation> serverFilesOperations) {
 		List<FileInfo> responseFileInfoList = new ArrayList<FileInfo>();
 		for (Entry<String, Operation> entry : serverFilesOperations.entrySet()) {
 			Operation serverOperation = entry.getValue();
@@ -98,24 +103,32 @@ public class OperationExecutor {
 			String operationType = serverOperation.getType();
 
 			FileInfo serverFileInfo = new FileInfo(relativeFilePath, serverOperation.getDatetime());
-			
-			if(!clientFileInfoList.contains(serverFileInfo)) {
-				if(operationType.equals(Operation.CREATE) || operationType.equals(Operation.UPDATE)) {
-					FileInfo newFileInfo = new FileInfo(relativeFilePath, serverFileLastModified, FileOperation.GET_FROM_SERVER);
+
+			if (!clientFileInfoList.contains(serverFileInfo)) {
+				if (operationType.equals(Operation.CREATE) || operationType.equals(Operation.UPDATE)) {
+					FileInfo newFileInfo = new FileInfo(relativeFilePath, serverFileLastModified,
+							FileOperation.GET_FROM_SERVER);
 					responseFileInfoList.add(newFileInfo);
+
+					System.out.println(operationType);
+					System.out.println(newFileInfo);
+					System.out.println("Adicionou no 1");
 				}
 			} else {
 				int clientFileInfoIndex = clientFileInfoList.indexOf(serverFileInfo);
 				FileInfo clientFileInfo = clientFileInfoList.get(clientFileInfoIndex);
+
 				Date clientLastModified = clientFileInfo.getLastModified();
-				
-				if(operationType.equals(Operation.DELETE)) {	
-					FileInfo newFileInfo = new FileInfo(relativeFilePath, clientLastModified, FileOperation.DELETE_ON_CLIENT);
+				if (operationType.equals(Operation.DELETE)) {
+					FileInfo newFileInfo = new FileInfo(relativeFilePath, clientLastModified,
+							FileOperation.DELETE_ON_CLIENT);
 					responseFileInfoList.add(newFileInfo);
-				} else if(operationType.equals(Operation.CREATE) || operationType.equals(Operation.UPDATE)) {
+				} else if (operationType.equals(Operation.CREATE) || operationType.equals(Operation.UPDATE)) {
 					if (clientLastModified.before(serverFileLastModified)) {
-						FileInfo newFileInfo = new FileInfo(relativeFilePath, serverFileLastModified, FileOperation.GET_FROM_SERVER);
+						FileInfo newFileInfo = new FileInfo(relativeFilePath, serverFileLastModified,
+								FileOperation.GET_FROM_SERVER);
 						responseFileInfoList.add(newFileInfo);
+						System.out.println("Adicionou no 2");
 					}
 				}
 			}
@@ -124,12 +137,14 @@ public class OperationExecutor {
 	}
 
 	/**
-	 * Check files that server doesn't have or have a outdated version
+	 * Check files that server doesn't have or have an out of date version
+	 * 
 	 * @param clientFileInfoList
 	 * @param serverFilesOperations
 	 * @return
 	 */
-	private List<FileInfo> checkChangesForServer(List<FileInfo> clientFileInfoList, Map<String, Operation> serverFilesOperations) {
+	private List<FileInfo> checkChangesForServer(List<FileInfo> clientFileInfoList,
+			Map<String, Operation> serverFilesOperations) {
 		List<FileInfo> responseFileInfoList = new ArrayList<FileInfo>();
 		for (FileInfo clientFileInfo : clientFileInfoList) {
 			String relativeFilePath = clientFileInfo.getRelativePath();
@@ -143,11 +158,14 @@ public class OperationExecutor {
 				Operation lastOperation = serverFilesOperations.get(relativeFilePath);
 				Date lastOperationDatetime = lastOperation.getDatetime();
 				String serverLastOperationType = lastOperation.getType();
-				
-				if (!clientLastModified.equals(lastOperationDatetime) && clientLastModified.after(lastOperationDatetime)) {
-					if(serverLastOperationType.equals(Operation.CREATE) || serverLastOperationType.equals(Operation.UPDATE)) {
+
+				if (!clientLastModified.equals(lastOperationDatetime)
+						&& clientLastModified.after(lastOperationDatetime)) {
+					if (serverLastOperationType.equals(Operation.CREATE)
+							|| serverLastOperationType.equals(Operation.UPDATE)) {
 						// Server has a outdated version of the file
-						FileInfo newFileInfo = new FileInfo(relativeFilePath, clientLastModified, FileOperation.SEND_TO_SERVER);
+						FileInfo newFileInfo = new FileInfo(relativeFilePath, clientLastModified,
+								FileOperation.SEND_TO_SERVER);
 						responseFileInfoList.add(newFileInfo);
 					}
 				}
@@ -158,9 +176,9 @@ public class OperationExecutor {
 
 	public void deleteFileOrFolderOnDisk(User user, String relativePath) throws IOException {
 		String absoluteFilePath = getAbsoluteFilePath(user, relativePath);
-		
+
 		File fileToDelete = new File(absoluteFilePath);
-		if(fileToDelete.isDirectory()) {
+		if (fileToDelete.isDirectory()) {
 			FileUtils.deleteDirectory(fileToDelete);
 			logger.info("Directory '" + absoluteFilePath + "' deleted.");
 		} else {
@@ -168,9 +186,9 @@ public class OperationExecutor {
 			logger.info("File '" + absoluteFilePath + "' deleted.");
 		}
 	}
-	
+
 	public static String getAbsoluteFilePath(User user, String relativePath) {
-		return BASEPATH + File.separatorChar + user.getId() + File.separatorChar + relativePath;
+		return SERVER_BASEPATH + File.separatorChar + user.getId() + File.separatorChar + relativePath;
 	}
-	
+
 }

@@ -23,8 +23,7 @@ public class FileInfoLoader {
 				File file = new File(filePath.toUri());
 				Date lastModified = new Date(file.lastModified());
 				
-				//Get file path as relative of the root directory
-				String relativePath = directoryFile.toURI().relativize(file.toURI()).getPath();
+				String relativePath = FileInfoLoader.getRelativeFilePath(directoryFile, file);
 				
 				FileInfo fileInfo = new FileInfo(relativePath, lastModified);
 				fileInfoList.add(fileInfo);
@@ -35,5 +34,10 @@ public class FileInfoLoader {
 	
 	public static String buildAbsoluteFilePath(String absoluteOutputPathRoot, String localRelativePath) {
 		return absoluteOutputPathRoot + File.separatorChar + localRelativePath;
+	}
+	
+	//Get file path as relative of the root directory
+	public static String getRelativeFilePath(File rootDirectoryFile, File file) {
+		return rootDirectoryFile.toURI().relativize(file.toURI()).getPath();
 	}
 }

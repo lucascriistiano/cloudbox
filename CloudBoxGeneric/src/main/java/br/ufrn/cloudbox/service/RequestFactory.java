@@ -16,6 +16,14 @@ public class RequestFactory {
 
 		return request;
 	}
+	
+	public static Request createLogoutRequest(User user) {
+		Request request = new Request();
+		request.setOperation(OperationCode.LOGOUT);
+		request.setUser(user);
+
+		return request;
+	}
 
 	public static Request createRegisterRequest(User user) {
 		Request request = new Request();
@@ -60,15 +68,5 @@ public class RequestFactory {
 		
 		return request;
 	}
-
-	//TODO Replace update file method with send file method
-//	public static Request createUpdateFileRequest(User user, String localRelativePath) {
-//		Request request = new Request();
-//		request.setOperation(OperationCode.UPDATE_FILE);
-//		request.setRelativePath(localRelativePath);
-//		request.setUser(user);
-//		
-//		return request;
-//	}
 
 }

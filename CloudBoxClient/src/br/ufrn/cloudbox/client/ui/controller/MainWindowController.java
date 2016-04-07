@@ -8,14 +8,21 @@ import br.ufrn.cloudbox.client.service.ChangeListener;
 import br.ufrn.cloudbox.client.service.OperationExecutor;
 import br.ufrn.cloudbox.exception.ConnectionException;
 import br.ufrn.cloudbox.model.User;
+import br.ufrn.cloudbox.service.FileInfoLoader;
+import javafx.collections.FXCollections;
+import javafx.collections.ObservableList;
 import javafx.event.ActionEvent;
 import javafx.fxml.FXML;
 import javafx.fxml.FXMLLoader;
 import javafx.scene.Parent;
 import javafx.scene.Scene;
+import javafx.scene.control.Alert;
+import javafx.scene.control.Alert.AlertType;
+import javafx.scene.control.ListView;
 import javafx.scene.control.TextField;
 import javafx.scene.text.Text;
 import javafx.stage.DirectoryChooser;
+import javafx.stage.FileChooser;
 import javafx.stage.Stage;
 
 public class MainWindowController {
@@ -29,24 +36,36 @@ public class MainWindowController {
 	@FXML
 	private Text txtLoggedUser;
 
+	@FXML
+	private ListView<String> fileIgnoreListView;
+
 	private OperationExecutor operationExecutor;
 	private DirectoryChooser directoryChooser;
+	private FileChooser fileChooser;
 
 	private User user;
 	private File selectedDirectory = null;
 
 	private ChangeListener changeListener;
 
+	public static final ObservableList<String> ignoredFiles = FXCollections.observableArrayList();
+
 	public MainWindowController() {
 		this.directoryChooser = new DirectoryChooser();
 		this.directoryChooser.setTitle("Escolher diretório de sicronização");
 		this.directoryChooser.setInitialDirectory(new File(System.getProperty("user.home")));
+
+		this.fileChooser = new FileChooser();
+		this.fileChooser.setTitle("Escolher arquivo a ser ignorado");
+		this.fileChooser.setInitialDirectory(new File(System.getProperty("user.home")));
 	}
 
 	public void initData(User user) {
 		this.user = user;
 		this.txtLoggedUser.setText("Logado como: " + this.user.getEmail());
-		this.operationExecutor = new OperationExecutor(txtStatus);
+		this.operationExecutor = new OperationExecutor(txtStatus, ignoredFiles);
+
+		this.fileIgnoreListView.setItems(ignoredFiles);
 	}
 
 	@FXML
@@ -74,10 +93,65 @@ public class MainWindowController {
 		}
 	}
 
-	private void changeDirectory(File directory) throws InterruptedException, IOException, URISyntaxException, ConnectionException {
+	@FXML
+	public void handleAddFileIgnoreAction(ActionEvent event) {
+		if (selectedDirectory != null) {
+			Stage stage = (Stage) folderField.getScene().getWindow();
+
+			File selectedFileToIgnore = fileChooser.showOpenDialog(stage);
+			if (selectedFileToIgnore != null) {
+				String relativeFileToIgnorePath = FileInfoLoader.getRelativeFilePath(selectedDirectory,selectedFileToIgnore);
+
+				if(!ignoredFiles.contains(relativeFileToIgnorePath)) {
+					ignoredFiles.add(relativeFileToIgnorePath);
+				} else {
+					Alert alert = new Alert(AlertType.INFORMATION);
+					alert.setTitle("Arquivo já ignorado");
+					alert.setHeaderText(null);
+					alert.setContentText("Arquivo já havia sido adicionado na lista de arquivos ignorados anteriormente.");
+					alert.showAndWait();
+				}
+				
+			}
+		} else {
+			Alert alert = new Alert(AlertType.INFORMATION);
+			alert.setTitle("Impossível prosseguir");
+			alert.setHeaderText(null);
+			alert.setContentText("Selecione um diretório antes de prosseguir.");
+			alert.showAndWait();
+		}
+	}
+
+	@FXML
+	public void handleRemoveFileIgnoreAction(ActionEvent event) {
+		if (selectedDirectory != null) {
+			String selectedRelativeFileToIgnorePath = fileIgnoreListView.getSelectionModel().getSelectedItem();
+			if (selectedRelativeFileToIgnorePath != null) {
+				ignoredFiles.remove(selectedRelativeFileToIgnorePath);
+			} else {
+				Alert alert = new Alert(AlertType.INFORMATION);
+				alert.setTitle("Arquivo não selecionado");
+				alert.setHeaderText(null);
+				alert.setContentText("Selecione um arquivo a ser removido.");
+				alert.showAndWait();	
+			}
+		} else {
+			Alert alert = new Alert(AlertType.INFORMATION);
+			alert.setTitle("Diretório não selecionado");
+			alert.setHeaderText(null);
+			alert.setContentText("Selecione um diretório antes de prosseguir.");
+			alert.showAndWait();
+		}
+	}
+
+	private void changeDirectory(File directory)
+			throws InterruptedException, IOException, URISyntaxException, ConnectionException {
 		selectedDirectory = directory;
 		updateDirectoryPathExhibition();
 		stopPreviousMonitorActive();
+
+		fileChooser.setInitialDirectory(selectedDirectory);
+		ignoredFiles.clear();
 	}
 
 	private void syncAndMonitorNewRootFolder() throws IOException, URISyntaxException, ConnectionException {
@@ -91,8 +165,9 @@ public class MainWindowController {
 	}
 
 	@FXML
-	public void handleLogoutAction(ActionEvent event) throws IOException, InterruptedException {
+	public void handleLogoutAction(ActionEvent event) throws IOException, InterruptedException, ConnectionException {
 		stopPreviousMonitorActive();
+		operationExecutor.logout(user);
 		openLoginWindow();
 	}
 

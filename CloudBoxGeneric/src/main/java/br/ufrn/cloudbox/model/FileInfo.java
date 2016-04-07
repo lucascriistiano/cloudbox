@@ -21,7 +21,7 @@ public class FileInfo implements Serializable {
 		this.relativeFilePath = relativeFilePath;
 		this.lastModified = lastModified;
 	}
-	
+
 	public FileInfo(String relativeFilePath, Date lastModified, FileOperation fileOperation) {
 		this(relativeFilePath, lastModified);
 		this.fileOperation = fileOperation;
@@ -46,7 +46,7 @@ public class FileInfo implements Serializable {
 	public void setFileOperation(FileOperation fileOperation) {
 		this.fileOperation = fileOperation;
 	}
-
+	
 	@Override
 	public int hashCode() {
 		final int prime = 31;
